@@ -113,12 +113,6 @@ public class PluginVersionsBukkit extends SlimeDogCore {
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
-                // Do not saveConfig() or comments below the header will be deleted.
-                // There are  code samples on the internet that resolve the issue,
-                // but not needed, since we don't want to change values on the fly.
-                // FileConfiguration config = getConfig();
-                // config.options().copyDefaults(true);
-                // saveConfig();
             }
         } catch (RuntimeException e) {
             throw new RuntimeException(e);
