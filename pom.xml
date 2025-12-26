@@ -105,9 +105,14 @@
                                     <excludes>
                                         <exclude>META-INF/maven/**</exclude>
                                         <exclude>META-INF/*.MF</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>META-INF/services/**</exclude>
                                         <exclude>META-INF/versions/**</exclude>
                                         <exclude>org/jetbrains/**</exclude>
                                         <exclude>org/intellij/**</exclude>
+                                        <exclude>org/jspecify/**</exclude>
                                     </excludes>
                                 </filter>
                             </filters>
@@ -115,10 +120,6 @@
                                 <relocation>
                                     <pattern>dev.ratas.slimedogcore</pattern>
                                     <shadedPattern>${project.groupId}.${project.artifactId}.core</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.jetbrains.annotations</pattern>
-                                    <shadedPattern>${project.groupId}.${project.artifactId}.shadow.annotations</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>
