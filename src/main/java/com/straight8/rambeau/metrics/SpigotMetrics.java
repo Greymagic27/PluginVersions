@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -32,7 +33,9 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jspecify.annotations.NonNull;
 
+@SuppressWarnings("unused")
 public class SpigotMetrics {
 
     private final Plugin plugin;
@@ -45,7 +48,7 @@ public class SpigotMetrics {
      * @param serviceId The id of the service. It can be found at <a
      *                  href="https://bstats.org/what-is-my-plugin-id">What is my plugin id?</a>
      */
-    public SpigotMetrics(JavaPlugin plugin, int serviceId) {
+    public SpigotMetrics(@NonNull JavaPlugin plugin, int serviceId) {
         this.plugin = plugin;
         // Get the config file
         File bStatsFolder = new File(plugin.getDataFolder().getParentFile(), "bStats");
@@ -58,7 +61,12 @@ public class SpigotMetrics {
             config.addDefault("logSentData", false);
             config.addDefault("logResponseStatusText", false);
             // Inform the server owners about bStats
-            config.options().header("bStats (https://bStats.org) collects some basic information for plugin authors, like how\n" + "many people use their plugin and their total player count. It's recommended to keep bStats\n" + "enabled, but if you're not comfortable with this, you can turn this setting off. There is no\n" + "performance penalty associated with having metrics enabled, and data sent to bStats is fully\n" + "anonymous.").copyDefaults(true);
+            config.options().getHeader().add("""
+                    bStats (https://bStats.org) collects some basic information for plugin authors, like how
+                    many people use their plugin and their total player count. It's recommended to keep bStats
+                    enabled, but if you're not comfortable with this, you can turn this setting off. There is no
+                    performance penalty associated with having metrics enabled, and data sent to bStats is fully
+                    anonymous.""");
             try {
                 config.save(configFile);
             } catch (IOException ignored) {
@@ -74,16 +82,12 @@ public class SpigotMetrics {
         metricsBase = new MetricsBase("bukkit", serverUUID, serviceId, enabled, this::appendPlatformData, this::appendServiceData, submitDataTask -> Bukkit.getScheduler().runTask(plugin, submitDataTask), plugin::isEnabled, (message, error) -> this.plugin.getLogger().log(Level.WARNING, message, error), (message) -> this.plugin.getLogger().log(Level.INFO, message), logErrors, logSentData, logResponseStatusText);
     }
 
-    /**
-     * Adds a custom chart.
-     *
-     * @param chart The chart to add.
-     */
+
     public void addCustomChart(CustomChart chart) {
         metricsBase.addCustomChart(chart);
     }
 
-    private void appendPlatformData(JsonObjectBuilder builder) {
+    private void appendPlatformData(@NonNull JsonObjectBuilder builder) {
         builder.appendField("playerAmount", getPlayerAmount());
         builder.appendField("onlineMode", Bukkit.getOnlineMode() ? 1 : 0);
         builder.appendField("bukkitVersion", Bukkit.getVersion());
@@ -95,8 +99,8 @@ public class SpigotMetrics {
         builder.appendField("coreCount", Runtime.getRuntime().availableProcessors());
     }
 
-    private void appendServiceData(JsonObjectBuilder builder) {
-        builder.appendField("pluginVersion", plugin.getDescription().getVersion());
+    private void appendServiceData(@NonNull JsonObjectBuilder builder) {
+        builder.appendField("pluginVersion", plugin.getPluginMeta().getVersion());
     }
 
     private int getPlayerAmount() {
@@ -157,20 +161,20 @@ public class SpigotMetrics {
          * @param platform                    The platform of the service.
          * @param serviceId                   The id of the service.
          * @param serverUuid                  The server uuid.
-         * @param enabled                     Whether or not data sending is enabled.
+         * @param enabled                     Whether data sending is enabled.
          * @param appendPlatformDataConsumer  A consumer that receives a {@code JsonObjectBuilder} and
          *                                    appends all platform-specific data.
          * @param appendServiceDataConsumer   A consumer that receives a {@code JsonObjectBuilder} and
          *                                    appends all service-specific data.
          * @param submitTaskConsumer          A consumer that takes a runnable with the submit task. This can be
-         *                                    used to delegate the data collection to a another thread to prevent errors caused by
+         *                                    used to delegate the data collection to a thread to prevent errors caused by
          *                                    concurrency. Can be {@code null}.
          * @param checkServiceEnabledSupplier A supplier to check if the service is still enabled.
          * @param errorLogger                 A consumer that accepts log message and an error.
          * @param infoLogger                  A consumer that accepts info log messages.
-         * @param logErrors                   Whether or not errors should be logged.
-         * @param logSentData                 Whether or not the sent data should be logged.
-         * @param logResponseStatusText       Whether or not the response status text should be logged.
+         * @param logErrors                   Whether errors should be logged.
+         * @param logSentData                 Whether the sent data should be logged.
+         * @param logResponseStatusText       Whether the response status text should be logged.
          */
         public MetricsBase(String platform, String serverUuid, int serviceId, boolean enabled, Consumer<JsonObjectBuilder> appendPlatformDataConsumer, Consumer<JsonObjectBuilder> appendServiceDataConsumer, Consumer<Runnable> submitTaskConsumer, Supplier<Boolean> checkServiceEnabledSupplier, BiConsumer<String, Throwable> errorLogger, Consumer<String> infoLogger, boolean logErrors, boolean logSentData, boolean logResponseStatusText) {
             this.platform = platform;
@@ -269,7 +273,9 @@ public class SpigotMetrics {
                 infoLogger.accept("Sent bStats metrics data: " + data.toString());
             }
             String url = String.format(REPORT_URL, platform);
-            HttpsURLConnection connection = (HttpsURLConnection) new URL(url).openConnection();
+            URI uri = new URI(url);
+            URL urlObject = uri.toURL();
+            HttpsURLConnection connection = (HttpsURLConnection) urlObject.openConnection();
             // Compress the data to save bandwidth
             byte[] compressedData = compress(data.toString());
             connection.setRequestMethod("POST");
@@ -313,6 +319,7 @@ public class SpigotMetrics {
             }
         }
     }
+
 
     public static class AdvancedBarChart extends CustomChart {
 
@@ -424,6 +431,7 @@ public class SpigotMetrics {
         }
     }
 
+
     public static class AdvancedPie extends CustomChart {
 
         private final Callable<Map<String, Integer>> callable;
@@ -496,6 +504,7 @@ public class SpigotMetrics {
 
         protected abstract JsonObjectBuilder.JsonObject getChartData() throws Exception;
     }
+
 
     public static class SingleLineChart extends CustomChart {
 
@@ -596,7 +605,7 @@ public class SpigotMetrics {
     /**
      * An extremely simple JSON builder.
      *
-     * <p>While this class is neither feature-rich nor the most performant one, it's sufficient enough
+     * <p>While this class is neither feature-rich nor the most performant one, it's sufficient
      * for its use-case.
      */
     public static class JsonObjectBuilder {
@@ -610,15 +619,16 @@ public class SpigotMetrics {
         }
 
         /**
-         * Escapes the given string like stated in https://www.ietf.org/rfc/rfc4627.txt.
+         * Escapes the given string like stated in <a href="https://www.ietf.org/rfc/rfc4627.txt">...</a>.
          *
          * <p>This method escapes only the necessary characters '"', '\'. and '\u0000' - '\u001F'.
-         * Compact escapes are not used (e.g., '\n' is escaped as "\u000a" and not as "\n").
+         * Compact escapes are not used (e.g., '\n' is escaped as "
+         * " and not as "\n").
          *
          * @param value The value to escape.
          * @return The escaped value.
          */
-        private static String escape(String value) {
+        private static @NonNull String escape(@NonNull String value) {
             final StringBuilder builder = new StringBuilder();
             for (int i = 0; i < value.length(); i++) {
                 char c = value.charAt(i);
@@ -711,15 +721,13 @@ public class SpigotMetrics {
          *
          * @param key    The key of the field.
          * @param values The integer array.
-         * @return A reference to this object.
          */
-        public JsonObjectBuilder appendField(String key, int[] values) {
+        public void appendField(String key, int[] values) {
             if (values == null) {
                 throw new IllegalArgumentException("JSON values must not be null");
             }
             String escapedValues = Arrays.stream(values).mapToObj(String::valueOf).collect(Collectors.joining(","));
             appendFieldUnescaped(key, "[" + escapedValues + "]");
-            return this;
         }
 
         /**
@@ -727,15 +735,13 @@ public class SpigotMetrics {
          *
          * @param key    The key of the field.
          * @param values The integer array.
-         * @return A reference to this object.
          */
-        public JsonObjectBuilder appendField(String key, JsonObject[] values) {
+        public void appendField(String key, JsonObject[] values) {
             if (values == null) {
                 throw new IllegalArgumentException("JSON values must not be null");
             }
             String escapedValues = Arrays.stream(values).map(JsonObject::toString).collect(Collectors.joining(","));
             appendFieldUnescaped(key, "[" + escapedValues + "]");
-            return this;
         }
 
         /**
